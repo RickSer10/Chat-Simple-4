@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat-Sapito</title>
+</head>
+
+<script type="module">
+    import { io } from 'https://cdn.socket.io/4.3.2/socket.io.esm.min.js';
+
+    const getUsername = async () => {
+        const username = localStorage.getItem('username');
+        if (username) {
+            console.log(`Usuario Existente: ${username}`);
+            return username;
+        } else {
+            const modal = document.getElementById('user-modal');
+            modal.style.display = 'block';
+
+            return new Promise((resolve) => {
+                const usernameInput = document.getElementById('username-input');
+                const usernameSubmit = document.getElementById('username-submit');
+                usernameSubmit.addEventListener('click', () => {
+                    const newUsername = usernameInput.value.trim() || 'anonymous';
+                    localStorage.setItem('username', newUsername);
+                    modal.style.display = 'none';
+                    resolve(newUsername);
+                });
+            });
+        }
+    };
+
+    const socket = io({
+        auth: {
+            username: await getUsername(),
+            serverOffset: 0
+        }
+    });
+
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const messages = document.getElementById('messages');
+
+    socket.on('message', (msg, serverOffset, username) => {
+        const item =
+            `<li>
+                <p>${msg}</p>
+                <small>${username}</small>
+            </li>`;
+        messages.insertAdjacentHTML('beforeend', item);
+        socket.auth.serverOffset = serverOffset;
+        messages.scrollTop = messages.scrollHeight;
+    });
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (input.value) {
+            socket.emit('message', input.value);
+            input.value = '';
+        }
+    });
+</script>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', Tahoma;
+        display: grid;
+        place-content: center;
+        height: 100vh;
+        background: linear-gradient(to bottom, #059669, #047857, #065f46);
+    }
+
+    #chat {
+        border: 1px solid #1aa021;
+        overflow: hidden;
+        width: 350px;
+        height: 100%;
+        position: relative;
+    }
+
+    #messages {
+        list-style-type: none;
+        background-color: #74c159;
+        margin: 0;
+        padding: 0;
+        overflow-y: scroll;
+        scroll-behavior: smooth;
+        padding-bottom: 48px;
+        height: 100%;
+    }
+
+    #messages>li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    #messages>li>p {
+        margin: 0;
+    }
+
+    #messages>li>small {
+        font-size: 12px;
+        color: #555;
+    }
+
+    #form {
+        bottom: 0;
+        display: flex;
+        height: 50px;
+        left: 0;
+        padding: 4px;
+        position: absolute;
+        right: 0;
+    }
+
+    #input {
+        border-radius: 9999px;
+        border: 1px solid #eee;
+        flex: 1;
+        margin: 6px;
+        padding: 0 15px;
+    }
+
+    #form>button {
+        background: #09F;
+        color: #fff;
+        border: 0;
+        margin: 4px;
+        border-radius: 4px;
+    }
+
+    #form>button:hover {
+        background: #0CF;
+    }
+
+    #user-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+    }
+
+    #user-modal-content {
+        background: #fff;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 8px;
+        width: 300px;
+        text-align: center;
+    }
+
+    #username-input {
+        width: calc(100% - 20px);
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+
+    #username-submit {
+        background: #09F;
+        color: #fff;
+        border: 0;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    #username-submit:hover {
+        background: #0CF;
+    }
+</style>
+
+<body>
+    <div id="user-modal">
+        <div id="user-modal-content">
+            <h2>Ingrese su nombre de usuario</h2>
+            <input type="text" id="username-input" placeholder="Usuario">
+            <button id="username-submit">Guardar</button>
+        </div>
+    </div>
+
+    <section id="chat">
+        <ul id="messages"></ul>
+        <form id="form">
+            <input type="text" name="message" id="input" autocomplete="off" autofocus placeholder="Escribe un mensaje">
+            <button type="submit">Enviar</button>
+        </form>
+    </section>
+</body>
+
+
+</html>
